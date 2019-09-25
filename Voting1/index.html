@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Hello World DApp</title>
+  <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' type='text/css'>
+</head>
+<body class="container">
+  <h1>A Simple Hello World Voting Application</h1>
+  <div class="table-responsive">
+    <table class="table table-bordered" id="candidate_table">
+      <thead>
+        <tr>
+          <th>Candidate</th>
+          <th>Votes</th>
+        </tr>
+      </thead>
+   <!--    <tbody>
+        <tr>
+          <td>Ram</td>
+          <td id="candidate-1"></td>
+        </tr>
+        <tr>
+          <td>Nic</td>
+          <td id="candidate-2"></td>
+        </tr>
+        <tr>
+          <td>Jose</td>
+          <td id="candidate-3"></td>
+        </tr>
+      </tbody> -->
+    </table>
+  </div>
+
+<table id="mytable" class="table table-bordered">
+<tr><td>第一行</td></tr>
+</table>
+
+  <input type="text" id="candidate" class="form-control" />
+  <a href="#" onclick="voteForCandidate()" class="btn btn-primary">Vote</a>
+  
+  <table class="table table-bordered">  
+  	<tr>
+  		<td>
+  			please input name of the new candidate：
+  		</td>
+  		<td id="">
+  			<input type="text" name="new_candidate_name" style="border:none; overflow:hidden; height:100%; width:100%;">
+  		</td>
+  	</tr>
+  </table>
+  <a href="#" onclick="" class="btn btn-primary">新增</a>
+
+</body>
+<script src="./web3.min.js"></script>
+<script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+
+<script>
+//选取你的table，添加一行
+$("#mytable").append("<tr><td>第二行</td></tr>")
+</script>
+
+<script>
+//initialize web3
+if (typeof web3 !== 'undefined') {
+	web3 = new Web3(web3.currentProvider);
+} else {
+	web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:7545"));
+}
+ 
+var abi = [			//一个合约的abi是自动生成的，在remix编译合约后在compile details中可以得到
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "candidate",
+				"type": "bytes32"
+			}
+		],
+		"name": "addCandidate",
+		"outputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "candidate",
+				"type": "bytes32"
+			}
+		],
+		"name": "validCandidate",
+		"outputs": [
+			{
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "num",
+				"type": "uint8"
+			}
+		],
+		"name": "totalVotesFor",
+		"outputs": [
+			{
+				"name": "",
+				"type": "bytes32"
+			},
+			{
+				"name": "",
+				"type": "uint8"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"name": "votesReceived",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint8"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "candidateList",
+		"outputs": [
+			{
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "candidate",
+				"type": "bytes32"
+			}
+		],
+		"name": "voteForCandidate",
+		"outputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	}
+];
+var addr = '0x375262D3cDe6Fdee56bbaB44139490265f04da11';
+VotingContract=web3.eth.contract(abi);
+contractInstance=VotingContract.at(addr);
+//candidates={"Rama":"candidate-1","Nick":"candidate-2","Jose":"candidate-3"};
+ 
+function voteForCandidate() {
+	candidateName=$("#candidate").val();
+	contractInstance.voteForCandidate(candidateName,{from:web3.eth.accounts[0]},function(){
+		let div_id=candidates[candidateName];
+		$("#"+div_id).html(contractInstance.totalVotesFor.call(candidateName).toString());
+	});
+}
+ 
+function addCandidate() {
+	new_candidate = $("#new_candidate_name").val();	//取出用户输入的新候选人姓名
+	contractInstance.addCandidate(new_candidate,{from:web3.eth.accounts[0]},function(){} );
+}
+
+$(document).ready(function(){
+	//candidateNames=Object.keys(candidates);	//Object.keys取关键字
+	for(var i=0;i<3;i++){
+			//let name=candidateNames[i];	//姓名
+			let name,value=contractInstance.totalVotesFor.call(i); //从后台取出得票数
+			let val = value.toString();
+			console.log(name,val);
+			//$("#"+candidates[name]).html(val); //添加到HTML表格中 $("#"+candidates[name])是每一个得票数单元格的id
+			$("#candidate_table").append("<tr><td>"+name+"</td><td>"+val+"</td></tr>");
+	}
+});
+</script>
+</html>
