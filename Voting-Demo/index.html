@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Hello World DApp</title>
+  <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' type='text/css'>
+</head>
+<body class="container">
+  <h1>A Simple Hello World Voting Application</h1>
+  <div class="table-responsive">
+    <table class="table table-bordered" id="candidate_table">
+      <thead>
+        <tr>
+     	  <th>number</th>
+          <th>Candidate</th>
+          <th>Votes</th>
+        </tr>
+      </thead>
+    </table>
+  </div>
+
+  <input type="text" id="candidate" class="form-control" />
+  <br/>
+  <a href="#" onclick="voteForCandidate()" class="btn btn-primary">Vote</a>
+
+  <br/>
+  <br/>
+  <br/>
+  <br/>
+  <br/>
+  <br/>
+  <br/>
+  <br/>
+
+  <table class="table table-bordered">  
+  	<thead>
+        <tr>
+     	  <th colspan="2" >Or you need add a candidate:</th>
+        </tr>
+    </thead>
+  	<tr>
+  		<td>
+  			please input name of the new candidate：
+  		</td>
+  		<td>
+  			<input type="text" id="new_candidate_name" style="border:none; overflow:hidden; height:100%; width:100%;">
+  		</td>
+  	</tr>
+  </table>
+
+  <a href="#" onclick="addCandidate()" class="btn btn-primary">Add</a>
+
+</body>
+<script src="./web3.min.js"></script>
+<script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+
+
+<script>
+//initialize web3
+if (typeof web3 !== 'undefined') {
+	web3 = new Web3(web3.currentProvider);
+} else {
+	web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:7545"));
+}
+
+//一个合约的abi是自动生成的，在remix编译合约后在compile details中可以得到，前端需要智能合约的abi才能调用智能合约
+var abi = [			
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "_name",
+				"type": "string"
+			}
+		],
+		"name": "addCandidate",
+		"outputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "candidate_num",
+				"type": "uint8"
+			}
+		],
+		"name": "Vote",
+		"outputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "address_of_voter",
+		"outputs": [
+			{
+				"name": "",
+				"type": "address"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "candidates",
+		"outputs": [
+			{
+				"name": "name",
+				"type": "string"
+			},
+			{
+				"name": "votecount",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "i",
+				"type": "uint256"
+			}
+		],
+		"name": "getCount",
+		"outputs": [
+			{
+				"name": "",
+				"type": "string"
+			},
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "getCountNumber",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "voters",
+		"outputs": [
+			{
+				"name": "voted",
+				"type": "bool"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	}
+]
+
+var addr = '0x375262D3cDe6Fdee56bbaB44139490265f04da11'; //合约地址，部署后remix会显示
+VotingContract=web3.eth.contract(abi);
+contractInstance=VotingContract.at(addr); //得到合约的实例
+
+//投票
+function voteForCandidate() {
+	candidateNum=$("#candidate").val();
+	contractInstance.Vote(candidateNum,{from:web3.eth.accounts[0]},); //from:web3.eth.accounts[0]这一句表示用钱包中的哪个账户进行投票，钱包是前面web3那里确定的
+	window.location.reload(); //投票后刷新页面
+}
+
+//新增候选人
+function addCandidate() {
+	new_candidate = $("#new_candidate_name").val();	//取出用户输入的新候选人姓名
+	contractInstance.addCandidate(new_candidate,{from:web3.eth.accounts[0]}); //通过合约的实例调用合约的函数
+	window.location.reload();
+}
+
+$(document).ready(function(){
+	let len = contractInstance.getCountNumber.call();//目前的候选人数量
+	for(var i=0;i<len;i++){
+			let res = contractInstance.getCount.call(i); //从后台取出得票数  js只能用一个变量来接收多个返回值，多个返回值被封装成一个数组
+			$("#candidate_table").append("<tr><td>"+i+"</td><td>"+res[0]+"</td><td>"+res[1]+"</td></tr>"); //在id为candidate_table的表格中追加一行内容
+	}
+});
+</script>
+</html>
